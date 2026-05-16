@@ -3,6 +3,7 @@ datasets/
 
 # Databases
 *.duckdb
+*.wal
 
 # Python:
 # Byte-compiled / optimized / DLL files

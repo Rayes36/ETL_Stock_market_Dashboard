@@ -1,7 +1,17 @@
+SELECT '=== Dropping Tables ===' AS info;
+DROP TABLE IF EXISTS prices_fact;
+DROP TABLE IF EXISTS wall_street_estimate_fact;
+DROP TABLE IF EXISTS ttm_income_statements_fact;
+DROP TABLE IF EXISTS ttm_cash_flow_fact;
+DROP TABLE IF EXISTS ttm_balance_sheet_fact;
+DROP TABLE IF EXISTS yearly_income_statements_fact;
+DROP TABLE IF EXISTS yearly_cash_flow_fact;
+DROP TABLE IF EXISTS yearly_balance_sheet_fact;
+DROP TABLE IF EXISTS company_dim;
+
 CREATE TABLE IF NOT EXISTS company_dim(
-    company_id INTEGER PRIMARY KEY,
+    ticker VARCHAR PRIMARY KEY,
     company_name VARCHAR,
-    ticker VARCHAR,
     type VARCHAR,
     country VARCHAR,
     region VARCHAR,
@@ -9,83 +19,254 @@ CREATE TABLE IF NOT EXISTS company_dim(
     currency VARCHAR,
     industry VARCHAR,
     sector VARCHAR,
-    outstanding_shares INTEGER
+    outstanding_shares BIGINT
 );
+SELECT '=== Loading company_dim TABLE ===' AS info;
+INSERT INTO company_dim(
+    ticker,
+    company_name,
+    type,
+    country,
+    region,
+    exchange,
+    currency,
+    industry,
+    sector,
+    outstanding_shares
+)
+SELECT
+    ticker,
+    company_name,
+    type,
+    country,
+    region,
+    exchange,
+    currency,
+    industry,
+    sector,
+    outstanding_shares
+FROM
+    read_csv('datasets/company_dim.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS prices_fact(
-    company_id INTEGER PRIMARY KEY,
+    price_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     closing_price DOUBLE,
     opening_price DOUBLE,
     highest_price DOUBLE,
     lowest_price DOUBLE,
-    opening_price DOUBLE,
-    volume INTEGER,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    volume BIGINT,
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading prices_fact TABLE ===' AS info;
+INSERT INTO prices_fact(
+    price_id,
+    ticker,
+    date,
+    closing_price,
+    opening_price,
+    highest_price,
+    lowest_price,
+    volume
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date ASC) AS price_id,
+    Ticker,
+    Date,
+    Close,  
+    High,
+    Low,
+    Open,
+    Volume
+FROM
+    read_csv('datasets/prices_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS wall_street_estimate_fact(
-    company_id INTEGER PRIMARY KEY
+    estimate_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     current_price DOUBLE,
     highest_forecast DOUBLE,
     average_forecast DOUBLE,
     lowest_forecast DOUBLE,
     median_forecast DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading wall_street_estimate_fact TABLE ===' AS info;
+INSERT INTO wall_street_estimate_fact(
+    estimate_id,
+    ticker,
+    current_price,
+    highest_forecast,
+    average_forecast,
+    lowest_forecast,
+    median_forecast
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY ticker ASC) AS price_id,
+    ticker,
+    current,
+    high,
+    low,
+    mean,
+    median,
+FROM
+    read_csv('datasets/wall_street_estimate_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS ttm_income_statements_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading ttm_income_statements_fact TABLE ===' AS info;
+INSERT INTO ttm_income_statements_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/ttm/ttm_income_statements_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS ttm_cash_flow_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading ttm_cash_flow_fact TABLE ===' AS info;
+INSERT INTO ttm_cash_flow_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/ttm/ttm_cash_flow_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS ttm_balance_sheet_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading ttm_balance_sheet_fact TABLE ===' AS info;
+INSERT INTO ttm_balance_sheet_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/ttm/ttm_balance_sheet_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS yearly_income_statements_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading yearly_income_statements_fact TABLE ===' AS info;
+INSERT INTO yearly_income_statements_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/yearly/yearly_income_statements_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS yearly_cash_flow_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading yearly_cash_flow_fact TABLE ===' AS info;
+INSERT INTO yearly_cash_flow_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/yearly/yearly_cash_flow_fact.csv', AUTO_DETECT=TRUE);
+
 
 CREATE TABLE IF NOT EXISTS yearly_balance_sheet_fact(
-    company_id INTEGER PRIMARY KEY,
+    financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
     date TIMESTAMP,
     value DOUBLE,
-    FOREIGN KEY(company_id) REFERENCES company_dim(company_id)
+    FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
+SELECT '=== Loading yearly_balance_sheet_fact TABLE ===' AS info;
+INSERT INTO yearly_balance_sheet_fact(
+    financials_id,
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY date, ticker ASC) AS price_id,
+    ticker,
+    name,
+    date,
+    value
+FROM
+    read_csv('datasets/yearly/yearly_balance_sheet_fact.csv', AUTO_DETECT=TRUE);
