@@ -1,3 +1,4 @@
+SELECT '=== Loading ttm&yearly_financials_mart TABLE ===' AS info;
 CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.ttm_financials_mart AS
 WITH previous_value_ist AS(
     SELECT

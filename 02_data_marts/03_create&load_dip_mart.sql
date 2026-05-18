@@ -1,6 +1,7 @@
 DROP SCHEMA IF EXISTS analytic_schema CASCADE;
 CREATE SCHEMA IF NOT EXISTS analytic_schema;
 
+SELECT '=== Loading fifty_two_week_dip_mart TABLE ===' AS info;
 CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.fifty_two_week_dip_mart AS
 WITH ranked_prices AS(
     SELECT

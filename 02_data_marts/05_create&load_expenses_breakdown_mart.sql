@@ -1,3 +1,4 @@
+SELECT '=== Loading ttm&yearly_expenses_breakdown_mart TABLE ===' AS info;
 CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.ttm_expenses_breakdown_mart AS
 WITH previous_value AS(
     SELECT
@@ -19,7 +20,8 @@ FROM
     previous_value
 WHERE
     name IN('Total Revenue', 'Gross Profit', 'Cost Of Revenue', 'Net Income', 
-    'Total Expenses', 'Selling General And Administration', 'Research And Development')
+    'Total Expenses', 'Selling General And Administration', 'Research And Development',
+    'Other Operating Expenses')
 ORDER BY
     name ASC,
     ticker ASC,

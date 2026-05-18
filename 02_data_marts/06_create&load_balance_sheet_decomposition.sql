@@ -1,4 +1,5 @@
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.ttm_expenses_breakdown_mart AS
+SELECT '=== Loading balance_sheet_decomposition_mart TABLE ===' AS info;
+CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.balance_sheet_decomposition_mart AS
 WITH assets AS(
     SELECT
         ticker,
@@ -42,7 +43,7 @@ SELECT
     date,
     total_group_value,
     value,
-    'Asset' AS financial_category
+    'asset' AS financial_category
 FROM
     assets
 UNION ALL
@@ -52,7 +53,7 @@ SELECT
     date,
     total_group_value,
     value,
-    'Liability' AS financial_category
+    'liability' AS financial_category
 FROM
     liabilities
 ORDER BY
