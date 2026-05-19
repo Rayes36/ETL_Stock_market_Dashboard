@@ -6,3 +6,4 @@
 .read 02_data_marts/05_create&load_expenses_breakdown_mart.sql
 .read 02_data_marts/06_create&load_balance_sheet_decomposition.sql
 .read 02_data_marts/07_create&load_fcf_analysis_mart.sql
+.read 02_data_marts/08_create&load_fcf_margin_analysis_mart
