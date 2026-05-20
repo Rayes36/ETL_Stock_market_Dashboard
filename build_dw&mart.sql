@@ -28,9 +28,9 @@
 
 -- 04. Operational Efficiency & Cash Flow Marts
 -- Tracks Free Cash Flow (FCF) metrics, margins, and earnings drivers
-.read 04_efficiency_marts/01_create&load_fcf_analysis_mart.sql
-.read 04_efficiency_marts/02_create&load_fcf_margin_analysis_mart.sql
-.read 04_efficiency_marts/03_create&load_earnings_waterfall.sql
+.read 04_efficiency_marts/01_create_fcf_analysis_mart.sql
+.read 04_efficiency_marts/02_create_fcf_margin_analysis_mart.sql
+.read 04_efficiency_marts/03_create_earnings_waterfall.sql
 
 
 -- =============================================================================

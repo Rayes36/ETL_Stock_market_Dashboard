@@ -24,6 +24,15 @@ INSERT INTO dw_stock_dashboard.efficiency_schema.fcf_margin_analysis_mart(
     roic,
     roce
 )
+WITH prev_total_assets AS (
+    SELECT
+        ticker,
+        date,
+        value,
+        LAG(value) OVER (PARTITION BY ticker ORDER BY date) AS prev_assets
+    FROM dw_stock_dashboard.main.ttm_balance_sheet_fact
+    WHERE name = 'Total Assets'
+)
 SELECT
     ist.ticker,
     ist.date,
@@ -50,7 +59,10 @@ SELECT
     
     -- 6. ROA
     MAX(CASE WHEN ist.name = 'Net Income' THEN ist.value END) /
-    NULLIF(MAX(CASE WHEN bs.name = 'Total Assets' THEN bs.value END), 0) AS roa,
+    NULLIF(
+        (COALESCE(MAX(CASE WHEN bs.name = 'Total Assets' THEN bs.value END), 0) +
+        COALESCE(MAX(pta.prev_assets), 0)) / 2, 0
+    ) AS roa,
     
     -- 7. ROIC
     MAX(CASE WHEN ist.name = 'EBIT' THEN ist.value END) *
@@ -77,6 +89,8 @@ LEFT JOIN dw_stock_dashboard.main.ttm_cash_flow_fact AS cf
     ON ist.ticker = cf.ticker AND ist.date = cf.date
 LEFT JOIN dw_stock_dashboard.main.ttm_balance_sheet_fact AS bs
     ON ist.ticker = bs.ticker AND ist.date = bs.date
+LEFT JOIN prev_total_assets AS pta
+    ON ist.ticker = pta.ticker AND ist.date = pta.date
 WHERE
     ist.name IN(
         'Gross Profit',
