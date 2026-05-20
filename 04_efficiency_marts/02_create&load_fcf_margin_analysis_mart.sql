@@ -1,5 +1,29 @@
 SELECT '=== Loading fcf margin mart ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.fcf_margin_analysis_mart AS
+CREATE TABLE dw_stock_dashboard.efficiency_schema.fcf_margin_analysis_mart(
+    ticker VARCHAR,
+    date DATE,
+    gross_margin DOUBLE,
+    operating_margin DOUBLE,
+    net_margin DOUBLE,
+    fcf_margin DOUBLE,
+    roe DOUBLE,
+    roa DOUBLE,
+    roic DOUBLE,
+    roce DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.efficiency_schema.fcf_margin_analysis_mart(
+    ticker,
+    date,
+    gross_margin,
+    operating_margin,
+    net_margin,
+    fcf_margin,
+    roe,
+    roa,
+    roic,
+    roce
+)
 SELECT
     ist.ticker,
     ist.date,
@@ -11,7 +35,7 @@ SELECT
     -- 2. Operating Margin
     MAX(CASE WHEN ist.name = 'Operating Income' THEN ist.value END) /
     NULLIF(MAX(CASE WHEN ist.name = 'Total Revenue' THEN ist.value END), 0) AS operating_margin,
-
+    
     -- 3. Net Margin
     MAX(CASE WHEN ist.name = 'Net Income' THEN ist.value END) /
     NULLIF(MAX(CASE WHEN ist.name = 'Total Revenue' THEN ist.value END), 0) AS net_margin,
@@ -49,12 +73,10 @@ SELECT
     0) AS roce
 FROM
     dw_stock_dashboard.main.ttm_income_statements_fact AS ist
-INNER JOIN dw_stock_dashboard.main.ttm_cash_flow_fact AS cf
-    ON cf.ticker = ist.ticker
-    AND cf.date = ist.date
-INNER JOIN dw_stock_dashboard.main.ttm_balance_sheet_fact AS bs
-    ON bs.ticker = ist.ticker
-    AND bs.date = ist.date
+LEFT JOIN dw_stock_dashboard.main.ttm_cash_flow_fact AS cf
+    ON ist.ticker = cf.ticker AND ist.date = cf.date
+LEFT JOIN dw_stock_dashboard.main.ttm_balance_sheet_fact AS bs
+    ON ist.ticker = bs.ticker AND ist.date = bs.date
 WHERE
     ist.name IN(
         'Gross Profit',

@@ -1,5 +1,21 @@
-SELECT '=== Loading ttm&yearly_financials_mart TABLE ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.ttm_financials_mart AS
+DROP SCHEMA IF EXISTS financials_schema CASCADE;
+CREATE SCHEMA IF NOT EXISTS financials_schema;
+
+SELECT '=== Loading ttm_and_yearly_expenses_breakdown_mart TABLE ===' AS info;
+CREATE TABLE dw_stock_dashboard.financials_schema.ttm_financials_mart(
+    ticker VARCHAR,
+    date DATE,
+    name VARCHAR,
+    value DOUBLE,
+    percentage_diff DOUBLE
+);
+INSERT INTO dw_stock_dashboard.financials_schema.ttm_financials_mart(
+    ticker,
+    date,
+    name,
+    value,
+    percentage_diff
+)
 WITH previous_value_ist AS(
     SELECT
         *,
@@ -47,7 +63,24 @@ ORDER BY
     date ASC;
 
 
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.yearly_financials_mart AS
+-- yearly section ---------------------------------------------------------
+
+
+CREATE TABLE dw_stock_dashboard.financials_schema.yearly_financials_mart(
+    ticker VARCHAR,
+    date DATE,
+    name VARCHAR,
+    value DOUBLE,
+    percentage_diff DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.financials_schema.yearly_financials_mart(
+    ticker,
+    date,
+    name,
+    value,
+    percentage_diff
+)
 WITH previous_value_ist AS(
     SELECT
         *,

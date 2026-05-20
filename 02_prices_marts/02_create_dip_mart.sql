@@ -1,8 +1,17 @@
-DROP SCHEMA IF EXISTS analytic_schema CASCADE;
-CREATE SCHEMA IF NOT EXISTS analytic_schema;
-
 SELECT '=== Loading fifty_two_week_dip_mart TABLE ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.fifty_two_week_dip_mart AS
+CREATE TABLE dw_stock_dashboard.prices_schema.fifty_two_week_dip_mart(
+    ticker VARCHAR,
+    latest_closing_price DOUBLE,
+    highest_52wk_price DOUBLE,
+    lowest_52wk_price DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.prices_schema.fifty_two_week_dip_mart(
+    ticker,
+    latest_closing_price,
+    highest_52wk_price,
+    lowest_52wk_price
+)
 WITH ranked_prices AS(
     SELECT
         ticker,

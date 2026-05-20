@@ -1,34 +1,24 @@
-SELECT '=== Loading fcf marts ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.fcf_analysis_mart AS
-SELECT
-    ticker,
-    name,
-    date,
-    value,
-FROM
-    dw_stock_dashboard.main.ttm_cash_flow_fact
-WHERE
-    name IN(
-        'Free Cash Flow', 'Depreciation And Amortization', 'Capital Expenditure',
-        'Stock Based Compensation', 'Change In Working Capital', 'Other Non Cash Items'
-    )
-UNION ALL
-SELECT
-    ticker,
-    name,
-    date,
-    value
-FROM
-    dw_stock_dashboard.main.ttm_income_statements_fact
-WHERE
-    name = 'Net Income'
-ORDER BY
-    ticker ASC,
-    date ASC,
-    name ASC;
+DROP SCHEMA IF EXISTS efficiency_schema CASCADE;
+CREATE SCHEMA IF NOT EXISTS efficiency_schema;
 
+SELECT '=== Loading fcf_mart TABLE ===' AS info;
+CREATE TABLE dw_stock_dashboard.efficiency_schema.latest_fcf_analysis_mart(
+    ticker VARCHAR,
+    date DATE,
+    free_cash_flow DOUBLE,
+    fcf_3_year_avg DOUBLE,
+    fcf_margin DOUBLE,
+    fcf_conversion_rate DOUBLE
+);
 
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.latest_fcf_mart AS
+INSERT INTO dw_stock_dashboard.efficiency_schema.latest_fcf_analysis_mart(
+    ticker,
+    date,
+    free_cash_flow,
+    fcf_3_year_avg,
+    fcf_margin,
+    fcf_conversion_rate
+)
 WITH latest_fcf AS(
     SELECT
         ticker,
@@ -104,3 +94,47 @@ WHERE
     AND li.rn = 1
 ORDER BY
     fcf.ticker;
+
+
+-- quarterly section ---------------------------------------------------------
+
+
+CREATE TABLE dw_stock_dashboard.efficiency_schema.fcf_analysis_mart(
+    ticker VARCHAR,
+    name VARCHAR,
+    date DATE,
+    value DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.efficiency_schema.fcf_analysis_mart(
+    ticker,
+    name,
+    date,
+    value
+)
+SELECT
+    ticker,
+    name,
+    date,
+    value
+FROM
+    dw_stock_dashboard.main.ttm_cash_flow_fact
+WHERE
+    name IN(
+        'Free Cash Flow', 'Depreciation And Amortization', 'Capital Expenditure',
+        'Stock Based Compensation', 'Change In Working Capital', 'Other Non Cash Items'
+    )
+UNION ALL
+SELECT
+    ticker,
+    name,
+    date,
+    value
+FROM
+    dw_stock_dashboard.main.ttm_income_statements_fact
+WHERE
+    name = 'Net Income'
+ORDER BY
+    ticker ASC,
+    date ASC,
+    name ASC;

@@ -1,5 +1,21 @@
 SELECT '=== Loading balance_sheet_decomposition_mart TABLE ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.balance_sheet_decomposition_mart AS
+CREATE TABLE dw_stock_dashboard.financials_schema.balance_sheet_decomposition_mart(
+    ticker VARCHAR,
+    name VARCHAR,
+    date DATE,
+    total_group_value DOUBLE,
+    value DOUBLE,
+    financial_category VARCHAR
+);
+
+INSERT INTO dw_stock_dashboard.financials_schema.balance_sheet_decomposition_mart(
+    ticker,
+    name,
+    date,
+    total_group_value,
+    value,
+    financial_category
+)
 WITH assets AS(
     SELECT
         ticker,
@@ -31,7 +47,7 @@ liabilities AS(
     WHERE
         name IN(
             -- current liabilities
-            'Current Liabilities', 'Accounts Payable', 'Payables And Accrued Expenses', 'Current Accrued Expenses', -- Added missing comma here
+            'Current Liabilities', 'Accounts Payable', 'Payables And Accrued Expenses', 'Current Accrued Expenses',
             -- non current liabilities
             'Long Term Debt And Capital Lease Obligations', 'Capital Lease Obligations',
             'Long Term Debt', 'Other Non Current Liabilities'

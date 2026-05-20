@@ -1,5 +1,19 @@
-SELECT '=== Loading ttm&yearly_expenses_breakdown_mart TABLE ===' AS info;
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.ttm_expenses_breakdown_mart AS
+SELECT '=== Loading ttm_and_yearly_expenses_breakdown_mart TABLE ===' AS info;
+CREATE TABLE dw_stock_dashboard.financials_schema.ttm_expenses_breakdown_mart(
+    ticker VARCHAR,
+    name VARCHAR,
+    date DATE,
+    value DOUBLE,
+    percentage_diff DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.financials_schema.ttm_expenses_breakdown_mart(
+    ticker,
+    name,
+    date,
+    value,
+    percentage_diff
+)
 WITH previous_value AS(
     SELECT
         *,
@@ -28,7 +42,24 @@ ORDER BY
     date ASC;
 
 
-CREATE OR REPLACE TABLE dw_stock_dashboard.analytic_schema.yearly_expenses_breakdown_mart AS
+-- yearly section ---------------------------------------------------------
+
+
+CREATE TABLE dw_stock_dashboard.financials_schema.yearly_expenses_breakdown_mart(
+    ticker VARCHAR,
+    name VARCHAR,
+    date DATE,
+    value DOUBLE,
+    percentage_diff DOUBLE
+);
+
+INSERT INTO dw_stock_dashboard.financials_schema.yearly_expenses_breakdown_mart(
+    ticker,
+    name,
+    date,
+    value,
+    percentage_diff
+)
 WITH previous_value AS(
     SELECT
         *,
@@ -49,7 +80,8 @@ FROM
     previous_value
 WHERE
     name IN('Total Revenue', 'Gross Profit', 'Cost Of Revenue', 'Net Income', 
-    'Total Expenses', 'Selling General And Administration', 'Research And Development')
+    'Total Expenses', 'Selling General And Administration', 'Research And Development',
+    'Other Operating Expenses')
 ORDER BY
     name ASC,
     ticker ASC,
