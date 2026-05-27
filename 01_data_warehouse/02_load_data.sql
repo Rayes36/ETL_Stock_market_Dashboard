@@ -1,12 +1,12 @@
 SELECT '=== Dropping Tables ===' AS info;
 DROP TABLE IF EXISTS prices_fact;
 DROP TABLE IF EXISTS wall_street_estimate_fact;
-DROP TABLE IF EXISTS ttm_income_statements_fact;
-DROP TABLE IF EXISTS ttm_cash_flow_fact;
-DROP TABLE IF EXISTS ttm_balance_sheet_fact;
+DROP TABLE IF EXISTS quarterly_income_statements_fact;
+DROP TABLE IF EXISTS quarterly_cash_flows_fact;
+DROP TABLE IF EXISTS quarterly_balance_sheets_fact;
 DROP TABLE IF EXISTS yearly_income_statements_fact;
-DROP TABLE IF EXISTS yearly_cash_flow_fact;
-DROP TABLE IF EXISTS yearly_balance_sheet_fact;
+DROP TABLE IF EXISTS yearly_cash_flows_fact;
+DROP TABLE IF EXISTS yearly_balance_sheets_fact;
 DROP TABLE IF EXISTS company_dim;
 
 CREATE TABLE IF NOT EXISTS company_dim(
@@ -116,16 +116,16 @@ FROM
     read_csv('datasets/wall_street_estimate_fact.csv', AUTO_DETECT=TRUE);
 
 
-CREATE TABLE IF NOT EXISTS ttm_income_statements_fact(
+CREATE TABLE IF NOT EXISTS quarterly_income_statements_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
-SELECT '=== Loading ttm_income_statements_fact TABLE ===' AS info;
-INSERT INTO ttm_income_statements_fact(
+SELECT '=== Loading quarterly_income_statements_fact TABLE ===' AS info;
+INSERT INTO quarterly_income_statements_fact(
     financials_id,
     ticker,
     name,
@@ -139,19 +139,19 @@ SELECT
     date,
     value
 FROM
-    read_csv('datasets/ttm/ttm_income_statements_fact.csv', AUTO_DETECT=TRUE);
+    read_csv('datasets/quarterly/quarterly_income_statements_fact.csv', AUTO_DETECT=TRUE);
 
 
-CREATE TABLE IF NOT EXISTS ttm_cash_flow_fact(
+CREATE TABLE IF NOT EXISTS quarterly_cash_flows_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
-SELECT '=== Loading ttm_cash_flow_fact TABLE ===' AS info;
-INSERT INTO ttm_cash_flow_fact(
+SELECT '=== Loading quarterly_cash_flows_fact TABLE ===' AS info;
+INSERT INTO quarterly_cash_flows_fact(
     financials_id,
     ticker,
     name,
@@ -165,19 +165,19 @@ SELECT
     date,
     value
 FROM
-    read_csv('datasets/ttm/ttm_cash_flow_fact.csv', AUTO_DETECT=TRUE);
+    read_csv('datasets/quarterly/quarterly_cash_flows_fact.csv', AUTO_DETECT=TRUE);
 
 
-CREATE TABLE IF NOT EXISTS ttm_balance_sheet_fact(
+CREATE TABLE IF NOT EXISTS quarterly_balance_sheets_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
-SELECT '=== Loading ttm_balance_sheet_fact TABLE ===' AS info;
-INSERT INTO ttm_balance_sheet_fact(
+SELECT '=== Loading quarterly_balance_sheets_fact TABLE ===' AS info;
+INSERT INTO quarterly_balance_sheets_fact(
     financials_id,
     ticker,
     name,
@@ -191,14 +191,14 @@ SELECT
     date,
     value
 FROM
-    read_csv('datasets/ttm/ttm_balance_sheet_fact.csv', AUTO_DETECT=TRUE);
+    read_csv('datasets/quarterly/quarterly_balance_sheets_fact.csv', AUTO_DETECT=TRUE);
 
 
 CREATE TABLE IF NOT EXISTS yearly_income_statements_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
@@ -220,16 +220,16 @@ FROM
     read_csv('datasets/yearly/yearly_income_statements_fact.csv', AUTO_DETECT=TRUE);
 
 
-CREATE TABLE IF NOT EXISTS yearly_cash_flow_fact(
+CREATE TABLE IF NOT EXISTS yearly_cash_flows_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
-SELECT '=== Loading yearly_cash_flow_fact TABLE ===' AS info;
-INSERT INTO yearly_cash_flow_fact(
+SELECT '=== Loading yearly_cash_flows_fact TABLE ===' AS info;
+INSERT INTO yearly_cash_flows_fact(
     financials_id,
     ticker,
     name,
@@ -243,19 +243,19 @@ SELECT
     date,
     value
 FROM
-    read_csv('datasets/yearly/yearly_cash_flow_fact.csv', AUTO_DETECT=TRUE);
+    read_csv('datasets/yearly/yearly_cash_flows_fact.csv', AUTO_DETECT=TRUE);
 
 
-CREATE TABLE IF NOT EXISTS yearly_balance_sheet_fact(
+CREATE TABLE IF NOT EXISTS yearly_balance_sheets_fact(
     financials_id INTEGER PRIMARY KEY,
     ticker VARCHAR,
     name VARCHAR,
-    date TIMESTAMP,
+    date DATE,
     value DOUBLE,
     FOREIGN KEY(ticker) REFERENCES company_dim(ticker)
 );
-SELECT '=== Loading yearly_balance_sheet_fact TABLE ===' AS info;
-INSERT INTO yearly_balance_sheet_fact(
+SELECT '=== Loading yearly_balance_sheets_fact TABLE ===' AS info;
+INSERT INTO yearly_balance_sheets_fact(
     financials_id,
     ticker,
     name,
@@ -269,4 +269,4 @@ SELECT
     date,
     value
 FROM
-    read_csv('datasets/yearly/yearly_balance_sheet_fact.csv', AUTO_DETECT=TRUE);
+    read_csv('datasets/yearly/yearly_balance_sheets_fact.csv', AUTO_DETECT=TRUE);
