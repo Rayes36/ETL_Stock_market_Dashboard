@@ -1,208 +1,349 @@
 DROP SCHEMA IF EXISTS financials_schema CASCADE;
 CREATE SCHEMA IF NOT EXISTS financials_schema;
 
-SELECT '=== Loading quarterly_and_yearly_expenses_breakdown_mart TABLE ===' AS info;
-CREATE TABLE dw_stock_dashboard.financials_schema.quarterly_financials_mart(
+SELECT '=== Loading TTM, quarterly, and yearly financials mart TABLE ===' AS info;
+CREATE TABLE dw_stock_dashboard.financials_schema.ttm_financials_mart(
     ticker VARCHAR,
     date DATE,
-    name VARCHAR,
-    value DOUBLE,
-    percentage_diff DOUBLE
+    total_revenue DOUBLE,
+    operating_income DOUBLE,
+    net_income DOUBLE,
+    eps_diluted DOUBLE,
+    operating_cash_flow DOUBLE,
+    capital_expenditures DOUBLE,
+    free_cash_flow DOUBLE
 );
-
-INSERT INTO dw_stock_dashboard.financials_schema.quarterly_financials_mart(
+INSERT INTO dw_stock_dashboard.financials_schema.ttm_financials_mart(
     ticker,
     date,
-    name,
-    value,
-    percentage_diff
+    total_revenue,
+    operating_income,
+    net_income,
+    eps_diluted,
+    operating_cash_flow,
+    capital_expenditures,
+    free_cash_flow
 )
-WITH previous_value_ist AS(
-    SELECT
-        *,
-        LAST_VALUE(value) OVER(
-            PARTITION BY name, ticker 
-            ORDER BY date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-        ) AS latest_value
-    FROM
-        dw_stock_dashboard.main.quarterly_income_statements_fact
-),
-calculated_cash_flows AS(
+WITH ttm_value AS(
     SELECT
         ticker,
-        date,
         name,
-        value
+        date,
+        SUM(value) OVER(
+            PARTITION BY ticker
+            ORDER BY date
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) AS ttm_value
+    FROM
+        dw_stock_dashboard.main.quarterly_income_statements_fact
+    WHERE
+        name = 'Total Revenue'
+
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
+        SUM(value) OVER(
+            PARTITION BY ticker 
+            ORDER BY date 
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) AS ttm_value
+    FROM
+        dw_stock_dashboard.main.quarterly_income_statements_fact
+    WHERE
+        name = 'Operating Income (Loss)'
+
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
+        SUM(value) OVER(
+            PARTITION BY ticker 
+            ORDER BY date 
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) AS ttm_value
+    FROM
+        dw_stock_dashboard.main.quarterly_income_statements_fact
+    WHERE
+        name = 'Net Income (Loss) Attributable to Parent'
+
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
+        ROUND(
+            SUM(value) OVER(
+                PARTITION BY ticker 
+                ORDER BY date 
+                ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+            ), 3
+        ) AS ttm_value
+    FROM
+        dw_stock_dashboard.main.quarterly_income_statements_fact
+    WHERE
+        name = 'Earnings Per Share, Diluted'
+
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
+        SUM(value) OVER(
+            PARTITION BY ticker 
+            ORDER BY date 
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) AS ttm_value
     FROM
         dw_stock_dashboard.main.quarterly_cash_flows_fact
     WHERE
         name = 'Net Cash Provided by (Used in) Operating Activities'
+
     UNION ALL
     SELECT
         ticker,
+        name,
         date,
-        'Free Cash Flow' AS name,
-        SUM(CASE WHEN name = 'Net Cash Provided by (Used in) Operating Activities' THEN COALESCE(value, 0) ELSE 0 END) -
-        SUM(CASE WHEN name = 'Payments to Acquire Property, Plant, and Equipment' THEN COALESCE(value, 0) ELSE 0 END) AS value
+        SUM(value) OVER(
+            PARTITION BY ticker 
+            ORDER BY date 
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) AS ttm_value
     FROM
         dw_stock_dashboard.main.quarterly_cash_flows_fact
     WHERE
-        name IN('Net Cash Provided by (Used in) Operating Activities', 'Payments to Acquire Property, Plant, and Equipment')
-    GROUP BY
-        ticker,
-        date
+        name = 'Capital Expenditures'
 ),
-previous_value_cfl AS(
+long_to_wide AS(
     SELECT
         ticker,
         date,
-        name,
-        value,
-        LAST_VALUE(value) OVER(
-            PARTITION BY name, ticker 
-            ORDER BY date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-        ) AS latest_value
+        MAX(CASE WHEN name = 'Total Revenue' THEN ttm_value END) AS total_revenue,
+        MAX(CASE WHEN name = 'Operating Income (Loss)' THEN ttm_value END) AS operating_income,
+        MAX(CASE WHEN name = 'Net Income (Loss) Attributable to Parent' THEN ttm_value END) AS net_income,
+        MAX(CASE WHEN name = 'Earnings Per Share, Diluted' THEN ttm_value END) AS eps_diluted,
+        MAX(CASE WHEN name = 'Net Cash Provided by (Used in) Operating Activities' THEN ttm_value END) AS operating_cash_flow,
+        MAX(CASE WHEN name = 'Capital Expenditures' THEN ttm_value END) AS capital_expenditures
     FROM
-        calculated_cash_flows
+        ttm_value
+    GROUP BY
+        ticker,
+        date
 )
 SELECT
     ticker,
     date,
-    name,
-    value,
+    total_revenue,
+    operating_income,
+    net_income,
+    eps_diluted,
+    operating_cash_flow,
+    capital_expenditures,
+    
+    -- addition is used because capex data is negative and OCF is positive
     CASE
-        WHEN latest_value IS NULL THEN NULL
-        ELSE ((latest_value - value) / NULLIF(latest_value, 0)) * 100
-    END AS percentage_diff
+        WHEN operating_cash_flow IS NULL OR capital_expenditures IS NULL THEN 0
+        ELSE operating_cash_flow + capital_expenditures
+    END AS free_cash_flow
 FROM
-    previous_value_ist
-WHERE
-    name IN(
-        'Total Revenue', 'Operating Income (Loss)',
-        'Net Income (Loss) Attributable to Parent', 'Earnings Per Share, Diluted'
-    )
-UNION ALL
+    long_to_wide
+ORDER BY
+    ticker ASC,
+    date DESC;
+
+
+
+-- quarterly section ---------------------------------------------------------
+
+CREATE TABLE dw_stock_dashboard.financials_schema.quarterly_financials_mart(
+    ticker VARCHAR,
+    date DATE,
+    total_revenue DOUBLE,
+    operating_income DOUBLE,
+    net_income DOUBLE,
+    eps_diluted DOUBLE,
+    operating_cash_flow DOUBLE,
+    capital_expenditures DOUBLE,
+    free_cash_flow DOUBLE
+);
+INSERT INTO dw_stock_dashboard.financials_schema.quarterly_financials_mart(
+    ticker,
+    date,
+    total_revenue,
+    operating_income,
+    net_income,
+    eps_diluted,
+    operating_cash_flow,
+    capital_expenditures,
+    free_cash_flow
+)
+WITH get_value AS(
+    SELECT
+        ticker,
+        name,
+        date,
+        value
+    FROM
+        dw_stock_dashboard.main.quarterly_income_statements_fact
+    WHERE
+        name IN(
+            'Total Revenue', 'Operating Income (Loss)', 'Net Income (Loss) Attributable to Parent',
+            'Earnings Per Share, Diluted'
+        )
+    
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
+        value
+    FROM
+        dw_stock_dashboard.main.quarterly_cash_flows_fact
+    WHERE
+        name IN(
+            'Net Cash Provided by (Used in) Operating Activities', 'Capital Expenditures'
+        )
+),
+long_to_wide AS(
+    SELECT
+        ticker,
+        date,
+        MAX(CASE WHEN name = 'Total Revenue' THEN value END) AS total_revenue,
+        MAX(CASE WHEN name = 'Operating Income (Loss)' THEN value END) AS operating_income,
+        MAX(CASE WHEN name = 'Net Income (Loss) Attributable to Parent' THEN value END) AS net_income,
+        MAX(CASE WHEN name = 'Earnings Per Share, Diluted' THEN value END) AS eps_diluted,
+        MAX(CASE WHEN name = 'Net Cash Provided by (Used in) Operating Activities' THEN value END) AS operating_cash_flow,
+        MAX(CASE WHEN name = 'Capital Expenditures' THEN value END) AS capital_expenditures
+    FROM
+        get_value
+    GROUP BY
+        ticker,
+        date
+)
 SELECT
     ticker,
     date,
-    name,
-    value,
-    CASE
-        WHEN latest_value IS NULL THEN NULL
-        ELSE ((latest_value - value) / NULLIF(latest_value, 0)) * 100
-    END AS percentage_diff
+    total_revenue,
+    operating_income,
+    net_income,
+    ROUND(eps_diluted, 3) AS eps_diluted,
+    operating_cash_flow,
+    capital_expenditures,
+    
+    -- addition is used because capex data is negative and OCF is positive
+    CASE 
+        WHEN operating_cash_flow IS NULL OR capital_expenditures IS NULL THEN 0
+        ELSE operating_cash_flow + capital_expenditures
+    END AS free_cash_flow
 FROM
-    previous_value_cfl
-WHERE
-    name IN('Net Cash Provided by (Used in) Operating Activities', 'Free Cash Flow')
+    long_to_wide
 ORDER BY
-    name ASC,
     ticker ASC,
-    date ASC;
+    date DESC;
+
 
 
 -- yearly section ---------------------------------------------------------
 
-
 CREATE TABLE dw_stock_dashboard.financials_schema.yearly_financials_mart(
     ticker VARCHAR,
     date DATE,
-    name VARCHAR,
-    value DOUBLE,
-    percentage_diff DOUBLE
+    total_revenue DOUBLE,
+    operating_income DOUBLE,
+    net_income DOUBLE,
+    eps_diluted DOUBLE,
+    operating_cash_flow DOUBLE,
+    capital_expenditures DOUBLE,
+    free_cash_flow DOUBLE
 );
-
 INSERT INTO dw_stock_dashboard.financials_schema.yearly_financials_mart(
     ticker,
     date,
-    name,
-    value,
-    percentage_diff
+    total_revenue,
+    operating_income,
+    net_income,
+    eps_diluted,
+    operating_cash_flow,
+    capital_expenditures,
+    free_cash_flow
 )
-WITH previous_value_ist AS(
-    SELECT
-        *,
-        LAST_VALUE(value) OVER(
-            PARTITION BY name, ticker 
-            ORDER BY date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-        ) AS latest_value
-    FROM
-        dw_stock_dashboard.main.yearly_income_statements_fact
-),
-calculated_cash_flows AS(
+WITH get_value AS(
     SELECT
         ticker,
-        date,
         name,
+        date,
+        value
+    FROM
+        dw_stock_dashboard.main.yearly_income_statements_fact
+    WHERE
+        name IN(
+            'Total Revenue', 'Operating Income (Loss)', 'Net Income (Loss) Attributable to Parent',
+            'Earnings Per Share, Diluted'
+        )
+    
+    UNION ALL
+    SELECT
+        ticker,
+        name,
+        date,
         value
     FROM
         dw_stock_dashboard.main.yearly_cash_flows_fact
     WHERE
         name = 'Net Cash Provided by (Used in) Operating Activities'
-        
-    UNION ALL
+),
+annual_capex_from_quarters AS (
+    SELECT
+        ticker,
+        YEAR(date) AS capex_year,
+        SUM(value) AS capital_expenditures
+    FROM
+        dw_stock_dashboard.main.quarterly_cash_flows_fact
+    WHERE
+        name = 'Capital Expenditures'
+    GROUP BY
+        ticker,
+        YEAR(date)
+    HAVING
+        COUNT(value) = 4
+),
+long_to_wide AS(
     SELECT
         ticker,
         date,
-        'Free Cash Flow' AS name,
-        SUM(CASE WHEN name = 'Net Cash Provided by (Used in) Operating Activities' THEN COALESCE(value, 0) ELSE 0 END) -
-        SUM(CASE WHEN name = 'Payments to Acquire Property, Plant, and Equipment' THEN COALESCE(value, 0) ELSE 0 END) AS value
+        MAX(CASE WHEN name = 'Total Revenue' THEN value END) AS total_revenue,
+        MAX(CASE WHEN name = 'Operating Income (Loss)' THEN value END) AS operating_income,
+        MAX(CASE WHEN name = 'Net Income (Loss) Attributable to Parent' THEN value END) AS net_income,
+        MAX(CASE WHEN name = 'Earnings Per Share, Diluted' THEN value END) AS eps_diluted,
+        MAX(CASE WHEN name = 'Net Cash Provided by (Used in) Operating Activities' THEN value END) AS operating_cash_flow
     FROM
-        dw_stock_dashboard.main.yearly_cash_flows_fact
-    WHERE
-        name IN('Net Cash Provided by (Used in) Operating Activities', 'Payments to Acquire Property, Plant, and Equipment')
+        get_value
     GROUP BY
         ticker,
         date
-),
-previous_value_cfl AS(
-    SELECT
-        ticker,
-        date,
-        name,
-        value,
-        LAST_VALUE(value) OVER(
-            PARTITION BY name, ticker 
-            ORDER BY date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-        ) AS latest_value
-    FROM
-        calculated_cash_flows
 )
 SELECT
-    ticker,
-    date,
-    name,
-    value,
-    CASE
-        WHEN latest_value IS NULL THEN NULL
-        ELSE ((latest_value - value) / NULLIF(latest_value, 0)) * 100
-    END AS percentage_diff
+    ltw.ticker,
+    ltw.date,
+    ltw.total_revenue,
+    ltw.operating_income,
+    ltw.net_income,
+    ltw.eps_diluted,
+    ltw.operating_cash_flow,
+    ac.capital_expenditures,
+    
+    -- addition is used because capex data is negative and OCF is positive
+    CASE 
+        WHEN ltw.operating_cash_flow IS NULL OR ac.capital_expenditures IS NULL THEN NULL
+        ELSE ltw.operating_cash_flow + ac.capital_expenditures
+    END AS free_cash_flow
 FROM
-    previous_value_ist
-WHERE
-    name IN(
-        'Total Revenue', 'Operating Income (Loss)',
-        'Net Income (Loss) Attributable to Parent', 'Earnings Per Share, Diluted'
-    )
-UNION ALL
-SELECT
-    ticker,
-    date,
-    name,
-    value,
-    CASE
-        WHEN latest_value IS NULL THEN NULL
-        ELSE ((latest_value - value) / NULLIF(latest_value, 0)) * 100
-    END AS percentage_diff
-FROM
-    previous_value_cfl
-WHERE
-    name IN('Net Cash Provided by (Used in) Operating Activities', 'Free Cash Flow')
+    long_to_wide AS ltw
+LEFT JOIN annual_capex_from_quarters AS ac
+    ON ltw.ticker = ac.ticker
+    AND YEAR(ltw.date) = ac.capex_year
 ORDER BY
-    name ASC,
-    ticker ASC,
-    date ASC;
+    ltw.ticker ASC,
+    ltw.date DESC;
